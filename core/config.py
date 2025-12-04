@@ -17,8 +17,8 @@ class BaseConfig:
 
     S3_BUCKET = "profile-media-bucket"
 
-    AWS_ACCESS_KEY = 'AKIA4O7OVM3LGY5BE6DR'
-    AWS_SECRET_KEY = 'EHgr0P+08wBW18Agkqg/rHlMOH8Esro2D5HnsYIK'
+    AWS_ACCESS_KEY = 'dummy'
+    AWS_SECRET_KEY = 'dummyK'
     AWS_REGION_NAME = '=ap-northeast-1'
 
 
