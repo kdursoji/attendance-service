@@ -1,0 +1,24 @@
+version: 1
+disable_existing_loggers: false
+formatters:
+  brief:
+    format: '%(levelname)-2s; %(name)-2s; %(message)s'
+    datefmt: "%I:%M:%S"
+  standard:
+    format: '%(asctime)s; %(levelname)-2s; %(name)-5s; %(funcName)-3s;%(lineno)4d: %(message)s'
+    datefmt: "%I:%M:%S"
+  verbose:
+    class: 'logging.Formatter'
+    format: '%(asctime)s; %(levelname)-2s; [%(process)d - %(thread)s]; %(name)-5s; %(funcName)-7s;%(lineno)4d: %(message)s'
+
+handlers:
+  console:
+    level: 'INFO'
+    class: 'logging.StreamHandler'
+    formatter: 'verbose'
+    stream : 'ext://sys.stdout'
+
+root:
+  level: 'INFO'
+  handlers:
+    - 'console'

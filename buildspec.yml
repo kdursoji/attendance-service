@@ -1,0 +1,51 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo docker info 
+      - docker info 
+      - aws --version
+      - aws sts get-caller-identity
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 856809629398.dkr.ecr.us-east-1.amazonaws.com
+      - REPOSITORY_URI=$ECR_URL_BASE/${APPLICATION_NAME}-${SERVICE_NAME}
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:=latest}
+  build:
+    commands:
+      - ls -l $CODEBUILD_SRC_DIR
+      - echo $pwd
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t $REPOSITORY_URI:latest .
+      - docker tag $REPOSITORY_URI:latest $REPOSITORY_URI:$IMAGE_TAG
+  post_build:
+    commands:
+      # the bad thing about the next line is that it needs to reference the account we are going to deploy into
+      # it needs to get the task definition from the target account
+      # maybe if we render the appspec some other way we wouldnt need to do this?
+      # the appspec only has SERVICE_NAME, TASK_DEFINITION, and CONTAINER_PORT
+      # - creds_json=$(aws sts assume-role --role-arn "arn:aws:iam::856809629398:role/admin-creds" --role-session-name codebuild)
+      # - export AWS_ACCESS_KEY_ID=$(echo "$creds_json" | jq .Credentials.AccessKeyId |tr -d '"')
+      # - export AWS_SECRET_ACCESS_KEY=$(echo "$creds_json" | jq .Credentials.SecretAccessKey| tr -d '"')
+      # - export AWS_SESSION_TOKEN=$(echo "$creds_json" | jq .Credentials.SessionToken|tr -d '"')
+      - aws sts get-caller-identity
+      - aws ecs describe-task-definition --task-definition ${APPLICATION_NAME}-${SERVICE_NAME} | jq '.taskDefinition' > taskdef.json
+      - echo "will be deployed with the following taskdef.json"
+      - cat taskdef.json
+      - export TASK_DEFINITION="arn:aws:ecs:us-east-1:856809629398:task-definition/esn-user-service"
+      - envsubst < appspec_template.yaml > appspec.yaml
+      - echo "will be deployed with the following appspec.yaml"
+      - cat appspec.yaml
+      - echo "switch back to original credentials to push to ECR..."
+      - unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+      - aws sts get-caller-identity
+      - echo Pushing the Docker images...
+      - docker push $REPOSITORY_URI:latest
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - echo Build completed on `date`
+artifacts:
+  files:
+    - appspec.yaml
+    - taskdef.json
